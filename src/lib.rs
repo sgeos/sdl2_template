@@ -16,6 +16,8 @@ const SLEEP_SECOND: u32 = 1_000_000_000;
 
 #[derive(Clone, Copy)]
 enum ColorBase {
+  Black,
+  White,
   Red,
   Green,
   Blue,
@@ -24,6 +26,8 @@ enum ColorBase {
 impl ColorBase {
   fn to_hsv(self) -> Hsv {
     match self {
+      ColorBase::Black => Hsv::new::<f32>(0.0, 0.0, 0.0),
+      ColorBase::White => Hsv::new::<f32>(0.0, 0.0, 1.0),
       ColorBase::Red => Hsv::new::<f32>(0.0, 1.0, 1.0),
       ColorBase::Green => Hsv::new::<f32>(120.0, 1.0, 1.0),
       ColorBase::Blue => Hsv::new::<f32>(240.0, 1.0, 1.0),
@@ -99,16 +103,23 @@ pub fn rlib_run(args: Vec<&str>) -> Result<(), Box<dyn Error>> {
     }
 
     // Update
-    let flash_seconds = 7;
-    if 0 == frame % u64::from(flash_seconds * fps) {
+    let flash_interval = 7; // seconds between flashes
+    let flash_duration = 1; // flash frames
+    let flash = frame % u64::from(flash_interval * fps) < flash_duration;
+    if 0 == frame % u64::from(flash_interval * fps) {
       background_color_base = match background_color_base {
         ColorBase::Red => ColorBase::Green,
         ColorBase::Green => ColorBase::Blue,
         ColorBase::Blue => ColorBase::Red,
+        ColorBase::White => ColorBase::Black,
+        ColorBase::Black => ColorBase::White,
       };
     }
     hsv_offset = hsv_offset + hsv_delta;
-    let background_color = background_color_base.to_hsv() + hsv_offset;
+    let background_color = match flash {
+      true => ColorBase::White.to_hsv(), // flash color
+      false => background_color_base.to_hsv() + hsv_offset,
+    };
 
     // Draw
     canvas.set_draw_color(hsv_to_color(background_color));
