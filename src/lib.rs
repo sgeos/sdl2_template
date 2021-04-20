@@ -104,7 +104,10 @@ pub fn rlib_run(args: Vec<&str>) -> Result<(), Box<dyn Error>> {
     match_value(&matches, "sdl_window_width", DEFAULT_SDL_WINDOW_WIDTH);
   let sdl_window_height =
     match_value(&matches, "sdl_window_height", DEFAULT_SDL_WINDOW_HEIGHT);
-  let sdl_window_fullscreen = matches.is_present("sdl_window_fullscreen");
+  // --fullscreen flag or FULLSCREEN=true environment variable
+  let sdl_window_fullscreen =
+    matches.is_present("sdl_window_fullscreen") ||
+    match_value(&matches, "env_sdl_window_fullscreen", false);
   println!("SDL Window Title: {}", sdl_window_title);
   println!("SDL Window Width: {} pixels", sdl_window_width);
   println!("SDL Window Height: {} pixels", sdl_window_height);
@@ -210,6 +213,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     .author("Brendan Sechter <sgeos@hotmail.com>")
     .about("SDL2 template project.")
     .arg(Arg::new("sdl_window_title")
+      .env("WINDOW_TITLE")
       .about("Window title.")
       .long("title")
       .short('t')
@@ -217,6 +221,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
       .default_value(APP_NAME)
     )
     .arg(Arg::new("sdl_window_width")
+      .env("WINDOW_WIDTH")
       .about("Window width.")
       .long("width")
       .short('w')
@@ -224,17 +229,25 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
       .default_value(&DEFAULT_SDL_WINDOW_WIDTH.to_string())
     )
     .arg(Arg::new("sdl_window_height")
+      .env("WINDOW_HEIGHT")
       .about("Window height.")
       .long("height")
       .short('h')
       .takes_value(true)
       .default_value(&DEFAULT_SDL_WINDOW_HEIGHT.to_string())
     )
+    // --fullscreen flag or FULLSCREEN=true environment variable
     .arg(Arg::new("sdl_window_fullscreen")
       .about("Launch in fullscreen mode.")
       .long("fullscreen")
     )
+    .arg(Arg::new("env_sdl_window_fullscreen")
+      .env("FULLSCREEN")
+      .about("Launch in fullscreen mode.")
+      .default_value("false")
+    )
     .arg(Arg::new("fps")
+      .env("FPS")
       .about("Target FPS.")
       .long("fps")
       .short('f')
@@ -242,6 +255,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
       .default_value(&DEFAULT_FPS.to_string())
     )
     .arg(Arg::new("flash_interval")
+      .env("FLASH_INTERVAL")
       .about("Flash interval in seconds.")
       .long("interval")
       .short('i')
@@ -249,6 +263,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
       .default_value(&DEFAULT_FLASH_INTERVAL.to_string())
     )
     .arg(Arg::new("flash_duration")
+      .env("FLASH_DURATION")
       .about("Flash duration in frames.")
       .long("duration")
       .short('d')
@@ -259,6 +274,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
 }
 
 fn match_value<T: FromStr>(matches: &clap::ArgMatches, key: &str, default: T) -> T {
+  println!("{} {:?}", key, matches.value_of(key));
   matches
     .value_of(key)
     .unwrap()
