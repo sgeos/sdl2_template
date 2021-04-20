@@ -13,6 +13,7 @@ name = "main"
 path = "src/main.rs"
 
 [dependencies]
+clap = "3.0.0-beta.2"
 palette = "0.5"
 
 [dependencies.sdl2]

@@ -1,6 +1,7 @@
 extern crate palette;
 extern crate sdl2;
 
+use clap::{App, Arg};
 use palette::{Hsv, LinSrgb};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -10,10 +11,18 @@ use sdl2::render::Canvas;
 use std::error::Error;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};
+use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
-const SLEEP_SECOND: u32 = 1_000_000_000;
+const APP_NAME: &str = "SDL2 Template";
+const APP_VERSION: &str = "0.1";
+const SLEEP_SECOND: u32 = 1_000_000_000; // nanoseconds
+const DEFAULT_FPS: u32 = 60; // fps
+const DEFAULT_SDL_WINDOW_WIDTH: u32 = 800; // pixels
+const DEFAULT_SDL_WINDOW_HEIGHT: u32 = 600; // pixels
+const DEFAULT_FLASH_INTERVAL: u32 = 7; // seconds
+const DEFAULT_FLASH_DURATION: u32 = 1; // frames
 
 struct State {
   done: bool,
@@ -23,11 +32,13 @@ struct State {
   hsv_delta: Hsv,
   hsv_offset: Hsv,
   background_color: Hsv,
+  flash_interval: u32,
+  flash_duration: u32,
 }
 
 impl State {
   pub fn new() -> Self {
-    let fps = 60;
+    let fps = DEFAULT_FPS;
     let background_color_base = ColorBase::Red;
     Self {
       done: false,
@@ -37,6 +48,8 @@ impl State {
       hsv_delta: Hsv::new::<f32>(60.0 / fps as f32, 0.0, 0.0),
       hsv_offset: Hsv::new::<f32>(0.0, 0.0, 0.0),
       background_color: background_color_base.to_hsv(),
+      flash_interval: DEFAULT_FLASH_INTERVAL,
+      flash_duration: DEFAULT_FLASH_DURATION,
     }
   }
 }
@@ -78,28 +91,43 @@ pub extern fn run(argc: c_int, argv: *const *const c_char) {
 }
 
 pub fn rlib_run(args: Vec<&str>) -> Result<(), Box<dyn Error>> {
-  // Arguments
-  for message in args {
-    println!("Program Argument: {}", message);
-  }
-  println!("");
+  // Command Line Arguments
+  let matches = parse_args(args);
+  let mut state = State::new();
+  state.fps = match_value(&matches, "fps", DEFAULT_FPS);
+  state.flash_interval =
+    match_value(&matches, "flash_interval", DEFAULT_FLASH_INTERVAL);
+  state.flash_duration =
+    match_value(&matches, "flash_duration", DEFAULT_FLASH_DURATION);
+  let sdl_window_title = matches.value_of("sdl_window_title").unwrap();
+  let sdl_window_width =
+    match_value(&matches, "sdl_window_width", DEFAULT_SDL_WINDOW_WIDTH);
+  let sdl_window_height =
+    match_value(&matches, "sdl_window_height", DEFAULT_SDL_WINDOW_HEIGHT);
+  let sdl_window_fullscreen = matches.is_present("sdl_window_fullscreen");
+  println!("SDL Window Title: {}", sdl_window_title);
+  println!("SDL Window Width: {} pixels", sdl_window_width);
+  println!("SDL Window Height: {} pixels", sdl_window_height);
+  println!("SDL Window Fullscreen: {}", sdl_window_fullscreen);
+  println!("FPS: {}", state.fps);
+  println!("Flash Interval: {} seconds", state.flash_interval);
+  println!("Flash Duration: {} frames", state.flash_duration);
 
   // SDL2 Setup
   let sdl_context = sdl2::init()?;
   let sdl_video_subsystem = sdl_context.video()?;
-  let sdl_window_title = "SDL2 Template";
-  let sdl_window_width = 800;
-  let sdl_window_height = 600;
-  let sdl_window = sdl_video_subsystem
+  let mut sdl_window = sdl_video_subsystem
     .window(sdl_window_title, sdl_window_width, sdl_window_height)
     .position_centered()
     .resizable()
     .build()?;
+  if sdl_window_fullscreen {
+    sdl_window.set_fullscreen(sdl2::video::FullscreenType::Desktop)?;
+  }
   let mut sdl_canvas = sdl_window.into_canvas().build()?;
   let mut sdl_event_pump = sdl_context.event_pump()?;
 
   // Main Loop
-  let mut state = State::new();
   while !state.done {
     input(&mut state, &mut sdl_event_pump);
     update(&mut state);
@@ -129,10 +157,9 @@ fn input(state: &mut State, sdl_event_pump: &mut sdl2::EventPump) {
 
 fn update(state: &mut State) {
   // Background Color Update
-  let flash_interval = 7; // seconds between flashes
-  let flash_duration = 1; // flash frames
-  let flash = state.frame % u64::from(flash_interval * state.fps) < flash_duration;
-  if 0 == state.frame % u64::from(flash_interval * state.fps) {
+  let flash_timer = state.frame % u64::from(state.flash_interval * state.fps);
+  let flash = flash_timer < state.flash_duration.into();
+  if 0 == flash_timer {
     state.background_color_base = match state.background_color_base {
       ColorBase::Red => ColorBase::Green,
       ColorBase::Green => ColorBase::Blue,
@@ -177,3 +204,65 @@ fn hsv_to_color(hsv: Hsv) -> Color {
   Color::RGBA(r, g, b, a)
 }
 
+fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
+  App::new(APP_NAME)
+    .version(APP_VERSION)
+    .author("Brendan Sechter <sgeos@hotmail.com>")
+    .about("SDL2 template project.")
+    .arg(Arg::new("sdl_window_title")
+      .about("Window title.")
+      .long("title")
+      .short('t')
+      .takes_value(true)
+      .default_value(APP_NAME)
+    )
+    .arg(Arg::new("sdl_window_width")
+      .about("Window width.")
+      .long("width")
+      .short('w')
+      .takes_value(true)
+      .default_value(&DEFAULT_SDL_WINDOW_WIDTH.to_string())
+    )
+    .arg(Arg::new("sdl_window_height")
+      .about("Window height.")
+      .long("height")
+      .short('h')
+      .takes_value(true)
+      .default_value(&DEFAULT_SDL_WINDOW_HEIGHT.to_string())
+    )
+    .arg(Arg::new("sdl_window_fullscreen")
+      .about("Launch in fullscreen mode.")
+      .long("fullscreen")
+    )
+    .arg(Arg::new("fps")
+      .about("Target FPS.")
+      .long("fps")
+      .short('f')
+      .takes_value(true)
+      .default_value(&DEFAULT_FPS.to_string())
+    )
+    .arg(Arg::new("flash_interval")
+      .about("Flash interval in seconds.")
+      .long("interval")
+      .short('i')
+      .takes_value(true)
+      .default_value(&DEFAULT_FLASH_INTERVAL.to_string())
+    )
+    .arg(Arg::new("flash_duration")
+      .about("Flash duration in frames.")
+      .long("duration")
+      .short('d')
+      .takes_value(true)
+      .default_value(&DEFAULT_FLASH_DURATION.to_string())
+    )
+    .get_matches_from(args)
+}
+
+fn match_value<T: FromStr>(matches: &clap::ArgMatches, key: &str, default: T) -> T {
+  matches
+    .value_of(key)
+    .unwrap()
+    .parse::<T>()
+    .unwrap_or(default)
+}
+ 

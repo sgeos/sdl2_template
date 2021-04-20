@@ -9,7 +9,15 @@ the library to the native entry point, even if it is a C or C++ program.
 
 # Usage Examples
 
+This template accepts command line arguments.
+Press ESC to exit the program.
+
 ```sh
 cargo run
+cargo run -- --help
+cargo run -- --version
+cargo run -- --fullscreen
+cargo run -- -t "Window Title" -w 200 -h200
+cargo run -- -f21 -i1 -d7
 ```
 
