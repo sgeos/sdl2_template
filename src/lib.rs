@@ -2,7 +2,7 @@ extern crate palette;
 extern crate sdl2;
 
 use clap::{App, Arg};
-use palette::{Hsv, LinSrgb};
+use palette::{FromColor, Hsv, Srgb};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -199,7 +199,7 @@ fn output(state: &mut State, canvas: &mut Canvas<sdl2::video::Window>) {
 
 // Convert from palette HSV to RGB color.
 fn hsv_to_color(hsv: Hsv) -> Color {
-  let rgb = LinSrgb::from(hsv);
+  let rgb = Srgb::from_color(hsv).into_linear();
   let r: u8 = (255.0 * rgb.red) as u8;
   let g: u8 = (255.0 * rgb.green) as u8;
   let b: u8 = (255.0 * rgb.blue) as u8;
@@ -214,7 +214,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     .about("SDL2 template project.")
     .arg(Arg::new("sdl_window_title")
       .env("WINDOW_TITLE")
-      .about("Window title.")
+      .help("Window title.")
       .long("title")
       .short('t')
       .takes_value(true)
@@ -222,7 +222,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     )
     .arg(Arg::new("sdl_window_width")
       .env("WINDOW_WIDTH")
-      .about("Window width.")
+      .help("Window width.")
       .long("width")
       .short('w')
       .takes_value(true)
@@ -230,7 +230,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     )
     .arg(Arg::new("sdl_window_height")
       .env("WINDOW_HEIGHT")
-      .about("Window height.")
+      .help("Window height.")
       .long("height")
       .short('h')
       .takes_value(true)
@@ -238,17 +238,17 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     )
     // --fullscreen flag or FULLSCREEN=true environment variable
     .arg(Arg::new("sdl_window_fullscreen")
-      .about("Launch in fullscreen mode.")
+      .help("Launch in fullscreen mode.")
       .long("fullscreen")
     )
     .arg(Arg::new("env_sdl_window_fullscreen")
       .env("FULLSCREEN")
-      .about("Launch in fullscreen mode.")
+      .help("Launch in fullscreen mode.")
       .default_value("false")
     )
     .arg(Arg::new("fps")
       .env("FPS")
-      .about("Target FPS.")
+      .help("Target FPS.")
       .long("fps")
       .short('f')
       .takes_value(true)
@@ -256,7 +256,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     )
     .arg(Arg::new("flash_interval")
       .env("FLASH_INTERVAL")
-      .about("Flash interval in seconds.")
+      .help("Flash interval in seconds.")
       .long("interval")
       .short('i')
       .takes_value(true)
@@ -264,7 +264,7 @@ fn parse_args(args: Vec<&str>) -> clap::ArgMatches {
     )
     .arg(Arg::new("flash_duration")
       .env("FLASH_DURATION")
-      .about("Flash duration in frames.")
+      .help("Flash duration in frames.")
       .long("duration")
       .short('d')
       .takes_value(true)

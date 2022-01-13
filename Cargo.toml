@@ -2,7 +2,7 @@
 name = "sdl2_template"
 version = "0.1.0"
 authors = ["Brendan A R Sechter <sgeos@hotmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "lib"
@@ -13,11 +13,14 @@ name = "main"
 path = "src/main.rs"
 
 [dependencies]
-clap = "3.0.0-beta.2"
-palette = "0.5"
+palette = "0.6.0"
+
+[dependencies.clap]
+version = "3.0.7"
+features = ["env"]
 
 [dependencies.sdl2]
-version = "0.34"
+version = "0.35.1"
 default-features = false
 features = ["ttf", "image", "gfx", "mixer"]
 
